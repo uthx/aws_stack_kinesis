@@ -13,13 +13,14 @@ const handler = async (event) => {
     for (const iterator of event.Records) {
       let ESPayload = ``;
       console.log(`Payload prior to parse`, iterator);
-      // ESPayload = Buffer.from(iterator.kinesis.data, `base64`).toString(`ascii`);
+      ESPayload = Buffer.from(iterator.kinesis.data, `base64`).toString(`ascii`);
       console.log(`ESPayload decoded`, ESPayload);
       if (isErrorPresent(ESPayload?.type)) {
         console.log("Skipping event processing, event", ESPayload);
       } else {
         console.log("eventApiUrl", eventApiUrl);
         const resp = await axios.post(eventApiUrl, ESPayload);
+        resp.status = 400;
         if (resp.status !== 200) {
           unhandeledRecords.Records.push(iterator.kinesis.data);
         }
@@ -28,13 +29,19 @@ const handler = async (event) => {
         //return resp.data
       }
     }
-    console.low("Processing is completed");
+    console.log("Processing is completed");
+    console.log({
+      unhandeledRecords,
+      "streamName": process.env.STREAM_NAME,
+      "streamArn" : process.env.STREAM_ARN
+    })
+    
     if(unhandeledRecords.Records.length) {
         console.log("Pushing records back in Kinesis");
         await kinesis.putRecords({
             StreamName: process.env.STREAM_NAME,
-            PartitionKey: 'pk1',
-            Data: Buffer.from(unhandeledRecords.Records)  
+            StreamARN: process.env.STREAM_ARN,
+            Records: unhandeledRecords.Records
         }).promise();
         console.log("Pushed Records in Kinesis");
     }

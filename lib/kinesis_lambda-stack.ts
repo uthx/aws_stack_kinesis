@@ -25,6 +25,11 @@ export class KinesisLambdaStack extends cdk.Stack {
       handler: 'index.handler',
       functionName: 'KinesisMessageHandler',
       runtime: lambda.Runtime.NODEJS_14_X,
+      environment: {
+        STREAM_NAME: stream.streamName,
+        STREAM_ARM: stream.streamArn
+        
+      }
     });
 
     const eventSource = new lambdaEventSources.KinesisEventSource(stream, {
@@ -32,5 +37,6 @@ export class KinesisLambdaStack extends cdk.Stack {
     });
 
     lambdaFunction.addEventSource(eventSource);
+    stream.grantWrite(lambdaFunction)
   }
 }
